@@ -76,6 +76,8 @@ func Java_com_ferg_afergulator_Engine_loadRom(env *C.JNIEnv, clazz C.jclass, jby
 	// the video rendering can happen on this one
 	go nes.RunSystem()
 
+	log.Printf("NES SYSTEM RUNNING.......")
+
 	return C.JNI_TRUE
 }
 
