@@ -63,6 +63,6 @@ task buildGo(type: Exec, description: 'build Fergulator shared library') {
 project.afterEvaluate {
     project.android['applicationVariants'].all { variant ->
         Task pkg = tasks.findByPath(':android:package' + variant.name.capitalize())
-        pkg.dependsOn(buildGo)
+//        pkg.dependsOn(buildGo)
     }
 }

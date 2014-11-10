@@ -62,18 +62,13 @@ const fragShaderSrcDef = `
 	uniform ivec3 palette[64];
 
 	void main() {
-		vec4 t = texture2D(texture, texCoord); // * 16.0;
-		float i = t.b * 3.0 + t.a;
-		i = t.b * 15.0 * 16.0 + t.a * 15.0;
-//		int j = int(mod(i, 64.0));
-		highp int j = int(i);
+		vec4 t = texture2D(texture, texCoord);
+		int i = int(t.b * 15.0) * 16 + int(t.a * 15.0);
+		i = i - ((i / 64) * 64);
 
-		ivec3 p = palette[j];
-//		vec3 color = vec3(p.r, p.g, p.b) / 255.0;
-		vec3 color = vec3(palette[j]) / 255.0;
-		color = vec3(i) / 64.0;
+		vec3 color = vec3(palette[i]) / 256.0;
+
 		gl_FragColor = vec4(color, 1);
-//		gl_FragColor = vec4(p.r, p.g, p.b, 1);
 	}
 `
 
