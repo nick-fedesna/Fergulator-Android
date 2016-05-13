@@ -1,23 +1,21 @@
 package com.ferg.afergulator;
 
-import android.app.*;
-import android.content.DialogInterface;
-import android.content.Intent;
+import android.app.Activity;
 import android.content.Context;
 import android.os.Bundle;
 import android.os.PowerManager;
-import android.view.*;
-import android.widget.*;
+import android.view.KeyEvent;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
 
 import com.ferg.afergulator.widget.ButtonNES;
 import com.ferg.afergulator.widget.ButtonNES.Key;
+import go.nesdroid.Nesdroid;
+import timber.log.Timber;
 
 public class GameActivity extends Activity {
+
     private static final String TAG = GameActivity.class.getSimpleName();
 
     private boolean audioEnabled = true;
@@ -45,23 +43,21 @@ public class GameActivity extends Activity {
         mGameView.onResume();
 
         String rom = getIntent().getStringExtra("rom");
-        android.util.Log.i(TAG, "Loading: " + rom);
-
-        // Nesdroid.PauseEmulator();
-
+        Timber.i(TAG, "Loading: " + rom);
+        
         InputStream is = null;
         try {
             is = getAssets().open("roms/" + rom);
             mGameView.loadGame(is, rom);
         } catch (IOException e) {
-            android.util.Log.i(TAG, e.toString());
+            Timber.i(e, "Error loading game!");
             e.printStackTrace();
         } finally {
             if (is != null) {
                 try {
                     is.close();
                 } catch (IOException e) {
-                    android.util.Log.i(TAG, e.toString());
+                    Timber.i(TAG, e.toString());
                     e.printStackTrace();
                 }
             }
@@ -72,7 +68,7 @@ public class GameActivity extends Activity {
     protected void onPause() {
         super.onPause();
 
-        // Nesdroid.PauseEmulator();
+        Nesdroid.PauseEmulator();
         mGameView.onPause();
     }
 
@@ -92,15 +88,15 @@ public class GameActivity extends Activity {
 
         return false;
     }
-     
-     @Override
-     public boolean onKeyUp(int keyCode, KeyEvent event) {
-         Key nesKey = ButtonNES.keyFromKeyCode(keyCode);
-         if (nesKey != null) {
-             Engine.buttonUp(nesKey);
-             return true;
-         }
 
-         return false;
-     }
+    @Override
+    public boolean onKeyUp(int keyCode, KeyEvent event) {
+        Key nesKey = ButtonNES.keyFromKeyCode(keyCode);
+        if (nesKey != null) {
+            Engine.buttonUp(nesKey);
+            return true;
+        }
+
+        return false;
+    }
 }

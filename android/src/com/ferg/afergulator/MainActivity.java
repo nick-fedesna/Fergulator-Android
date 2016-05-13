@@ -14,19 +14,20 @@ import java.io.*;
 import java.util.Set;
 
 import butterknife.*;
-import timber.log.Timber;
-
 import com.ferg.afergulator.widget.ButtonNES;
 import com.ferg.afergulator.widget.ButtonNES.Key;
-import go.nesdroid.*;
+import go.nesdroid.Nesdroid;
+import timber.log.Timber;
 
 public class MainActivity extends Activity implements ActionBar.OnNavigationListener {
 
     private static final int FILE_SELECT_CODE = 0xc001;
 
     static {
-        if (BuildConfig.DEBUG)
+        Timber.uprootAll();
+        if (BuildConfig.DEBUG) {
             Timber.plant(new Timber.DebugTree());
+        }
     }
 
     @InjectView(R.id.gameView) GameView mGameView;

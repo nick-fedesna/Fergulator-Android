@@ -35,7 +35,7 @@ func LoadRom(jbytes []byte, name string) bool {
 		log.Printf("cache path: %s", cachePath)
 	}
 
-	log.Printf("%v ROM: %v (%v kb)\n", string(rom[:3]), nes.GameName, len(rom)/1024)
+	log.Printf("%v ROM: %v (%v kb)\n", string(rom[:3]), nes.GameName, len(rom) / 1024)
 
 	videoTick, err := nes.Init(rom, nil, GetKey)
 	if err != nil {
@@ -47,6 +47,7 @@ func LoadRom(jbytes []byte, name string) bool {
 
 	// Main runloop, in a separate goroutine so that
 	// the video rendering can happen on this one
+	nes.AudioEnabled = false
 	go nes.RunSystem()
 
 	return true
