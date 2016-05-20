@@ -40,7 +40,7 @@ public class GameView extends GLSurfaceView implements GLSurfaceView.Renderer {
             "    int i = int(t.b * 15.0) * 16 + int(t.a * 15.0);" +
             "    i = i - ((i / 64) * 64);" +
             "    vec3 color = vec3(palette[i]) / 256.0;" +
-            "    gl_FragColor = vec4(color, 1);" +
+//            "    gl_FragColor = vec4(color, 1);" +
             "    gl_FragColor = vec4(1, 0, 0, 1);" +
             "}";
 
@@ -87,7 +87,8 @@ public class GameView extends GLSurfaceView implements GLSurfaceView.Renderer {
         setEGLContextClientVersion(2);
         setDebugFlags(DEBUG_CHECK_GL_ERROR | DEBUG_CHECK_GL_ERROR);
 
-        setRenderer(this);
+//        setRenderer(this);
+        setRenderer(new GameRenderer(ctx));
 
         if (!isInEditMode()) {
             File cache = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
@@ -208,7 +209,7 @@ public class GameView extends GLSurfaceView implements GLSurfaceView.Renderer {
         glViewport(0, 0, width, height);
     }
 
-    private int createProgram(String vertShaderSrc, String fragShaderSrc) {
+    public static int createProgram(String vertShaderSrc, String fragShaderSrc) {
         int vertShader = loadShader(GL_VERTEX_SHADER, vertShaderSrc);
         int fragShader = loadShader(GL_FRAGMENT_SHADER, fragShaderSrc);
 
@@ -221,7 +222,7 @@ public class GameView extends GLSurfaceView implements GLSurfaceView.Renderer {
         return program;
     }
 
-    private int loadShader(int type, String shaderCode) {
+    public static int loadShader(int type, String shaderCode) {
         int shader = glCreateShader(type);
         glShaderSource(shader, shaderCode);
         glCompileShader(shader);
