@@ -10,6 +10,11 @@ import java.nio.*;
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
+import go.nesdroid.Nesdroid;
+import timber.log.Timber;
+
+import static android.opengl.GLES20.*;
+
 public class GameRenderer implements Renderer {
 
     // @formatter:off
@@ -20,6 +25,8 @@ public class GameRenderer implements Renderer {
             "void main() {" +
             "  gl_Position = vPosition;" +
             "  v_texCoord = a_texCoord;" +
+//            "  v_texCoord = vec2(a_texCoord.x * .9375 +.03125, a_texCoord.y * .875 -.09375);" +
+
             "}";
 
     static final String fs_Image =
@@ -48,6 +55,8 @@ public class GameRenderer implements Renderer {
     long    mLastTime;
     int     mProgram;
 
+    private int mTexture;
+
     public GameRenderer(Context c) {
         mContext = c;
         mLastTime = System.currentTimeMillis() + 100;
@@ -64,27 +73,6 @@ public class GameRenderer implements Renderer {
 
     @Override
     public void onDrawFrame(GL10 unused) {
-
-        // Get the current time
-        long now = System.currentTimeMillis();
-
-        // We should make sure we are valid and sane
-        if (mLastTime > now) return;
-
-        // Get the amount of time the last frame took.
-        long elapsed = now - mLastTime;
-
-        // Update our example
-
-        // Render our example
-        Render();
-
-        // Save the current time to see how long it took :).
-        mLastTime = now;
-
-    }
-
-    private void Render() {
 
         // clear Screen and Depth Buffer, we have set the clear color as black.
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
@@ -113,6 +101,21 @@ public class GameRenderer implements Renderer {
         // Set the sampler texture unit to 0, where we have saved the texture.
         GLES20.glUniform1i(mSamplerLoc, 0);
 
+        // Bind texture to texturename
+        GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mTexture);
+
+        // 240 * 224 = 53,760
+        // 240 * 256 = 61,440
+        // 245,632 / 4 = 61,408
+        // Load the bitmap into the bound texture.
+        byte[] frame = Nesdroid.GetPixelBuffer();
+        if (frame != null) {
+            Timber.d("frame: %,d bytes", frame.length);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 240, 256, 0, GL_RGBA,
+                         GL_UNSIGNED_BYTE, ByteBuffer.wrap(frame));
+        }
+
         // Draw the triangle
         GLES20.glDrawElements(GLES20.GL_TRIANGLES, indices.length,
                               GLES20.GL_UNSIGNED_SHORT, drawListBuffer);
@@ -122,7 +125,6 @@ public class GameRenderer implements Renderer {
         GLES20.glDisableVertexAttribArray(mTexCoordLoc);
 
     }
-
 
     @Override
     public void onSurfaceChanged(GL10 gl, int width, int height) {
@@ -179,6 +181,7 @@ public class GameRenderer implements Renderer {
         // Generate Textures, if more needed, alter these numbers.
         int[] texturenames = new int[1];
         GLES20.glGenTextures(1, texturenames, 0);
+        mTexture = texturenames[0];
 
         // Retrieve our image from resources.
         int id = mContext.getResources().getIdentifier("drawable/ic_launcher", null, mContext.getPackageName());
@@ -188,7 +191,7 @@ public class GameRenderer implements Renderer {
 
         // Bind texture to texturename
         GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
-        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, texturenames[0]);
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mTexture);
 
         // Set filtering
         GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR);
