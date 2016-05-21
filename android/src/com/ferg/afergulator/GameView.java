@@ -40,7 +40,7 @@ public class GameView extends GLSurfaceView implements GLSurfaceView.Renderer {
             "    int i = int(t.b * 15.0) * 16 + int(t.a * 15.0);" +
             "    i = i - ((i / 64) * 64);" +
             "    vec3 color = vec3(palette[i]) / 256.0;" +
-//            "    gl_FragColor = vec4(color, 1);" +
+            "    gl_FragColor = vec4(color, 1);" +
             "    gl_FragColor = vec4(1, 0, 0, 1);" +
             "}";
 
