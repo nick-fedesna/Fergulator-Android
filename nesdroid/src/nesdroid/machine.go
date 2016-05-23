@@ -37,7 +37,7 @@ func LoadRom(jbytes []byte, name string) bool {
 
 	log.Printf("%v ROM: %v (%v kb)\n", string(rom[:3]), nes.GameName, len(rom) / 1024)
 
-	videoTick, err := nes.Init(rom, nil, GetKey)
+	videoTick, err := nes.Init(rom, audioDump, GetKey)
 	if err != nil {
 		log.Println(err)
 		return false
@@ -45,12 +45,19 @@ func LoadRom(jbytes []byte, name string) bool {
 
 	video.pixelBuffer = videoTick
 
+	//nes.AudioEnabled = false
+
+    nes.Handler = nes.NewNoopEventHandler()
+
 	// Main runloop, in a separate goroutine so that
 	// the video rendering can happen on this one
-	nes.AudioEnabled = false
 	go nes.RunSystem()
 
 	return true
+}
+
+func audioDump(buf int16) {
+    // no op
 }
 
 func PauseEmulator() {

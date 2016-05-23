@@ -5,12 +5,14 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.opengl.*;
 import android.opengl.GLSurfaceView.Renderer;
+import android.os.Looper;
 
 import java.nio.*;
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
 import go.nesdroid.Nesdroid;
+import timber.log.Timber;
 
 import static android.opengl.GLES20.*;
 
@@ -18,11 +20,11 @@ class GameRenderer implements Renderer {
 
     // @formatter:off
     private final String pixelShader =
-            "attribute vec4 vPosition;" +
+            "attribute vec4 a_Position;" +
             "attribute vec2 a_texCoord;" +
             "varying vec2 v_texCoord;" +
             "void main() {" +
-            "  gl_Position = vPosition;" +
+            "  gl_Position = a_Position;" +
             "  v_texCoord = a_texCoord;" +
             "}";
 
@@ -31,25 +33,17 @@ class GameRenderer implements Renderer {
             "varying vec2 v_texCoord;" +
             "uniform sampler2D s_texture;" +
             "void main() {" +
-//          "    gl_FragColor = texture2D(s_texture, v_texCoord);" +
-            "    vec4 c = texture2D(s_texture, v_texCoord);" +
-            "    gl_FragColor = vec4(c.a, c.b, c.g, 1.0);" +
+            "  gl_FragColor = texture2D(s_texture, v_texCoord);" +
             "}";
     // @formatter:on
 
-    private short indices[];
+    private Context mContext;
 
     private FloatBuffer vertexBuffer;
     private ShortBuffer drawListBuffer;
     private FloatBuffer uvBuffer;
 
-    private Context mContext;
-    private int     mProgram;
-
     private int mTexture;
-    private int mPositionLoc;
-    private int mTexCoordLoc;
-    private int mSamplerLoc;
 
     GameRenderer(Context c) {
         mContext = c;
@@ -65,11 +59,46 @@ class GameRenderer implements Renderer {
         int vertexShader = GameView.loadShader(GLES20.GL_VERTEX_SHADER, pixelShader);
         int fragmentShader = GameView.loadShader(GLES20.GL_FRAGMENT_SHADER, this.fragmentShader);
 
-        mProgram = GLES20.glCreateProgram();
-        GLES20.glAttachShader(mProgram, vertexShader);
-        GLES20.glAttachShader(mProgram, fragmentShader);
-        GLES20.glLinkProgram(mProgram);
-        GLES20.glUseProgram(mProgram);
+        int program = GLES20.glCreateProgram();
+        GLES20.glAttachShader(program, vertexShader);
+        GLES20.glAttachShader(program, fragmentShader);
+        GLES20.glLinkProgram(program);
+        GLES20.glUseProgram(program);
+
+        int a_position = GLES20.glGetAttribLocation(program, "a_Position");
+        GLES20.glEnableVertexAttribArray(a_position);
+        GLES20.glVertexAttribPointer(a_position, 3, GLES20.GL_FLOAT, false, 0, vertexBuffer);
+
+        int a_texCoord = GLES20.glGetAttribLocation(program, "a_texCoord");
+        GLES20.glEnableVertexAttribArray(a_texCoord);
+        GLES20.glVertexAttribPointer(a_texCoord, 2, GLES20.GL_FLOAT, false, 0, uvBuffer);
+
+        int s_texture = GLES20.glGetUniformLocation(program, "s_texture");
+        GLES20.glUniform1i(s_texture, 0);
+
+    }
+
+    private void setupSquare() {
+        float[] vertices = new float[]{
+                -1.0f, 1.0f, 0.0f,
+                -1.0f, -1.0f, 0.0f,
+                1.0f, -1.0f, 0.0f,
+                1.0f, 1.0f, 0.0f,
+        };
+
+        short[] indices = new short[]{0, 1, 2, 0, 2, 3};
+
+        ByteBuffer bb = ByteBuffer.allocateDirect(vertices.length * 4);
+        bb.order(ByteOrder.nativeOrder());
+        vertexBuffer = bb.asFloatBuffer();
+        vertexBuffer.put(vertices);
+        vertexBuffer.position(0);
+
+        ByteBuffer dlb = ByteBuffer.allocateDirect(indices.length * 2);
+        dlb.order(ByteOrder.nativeOrder());
+        drawListBuffer = dlb.asShortBuffer();
+        drawListBuffer.put(indices);
+        drawListBuffer.position(0);
     }
 
     private void setupTexture() {
@@ -101,29 +130,6 @@ class GameRenderer implements Renderer {
         bmp.recycle();
     }
 
-    private void setupSquare() {
-        float[] vertices = new float[]{
-                -1.0f, 1.0f, 0.0f,
-                -1.0f, -1.0f, 0.0f,
-                1.0f, -1.0f, 0.0f,
-                1.0f, 1.0f, 0.0f,
-        };
-
-        indices = new short[]{0, 1, 2, 0, 2, 3};
-
-        ByteBuffer bb = ByteBuffer.allocateDirect(vertices.length * 4);
-        bb.order(ByteOrder.nativeOrder());
-        vertexBuffer = bb.asFloatBuffer();
-        vertexBuffer.put(vertices);
-        vertexBuffer.position(0);
-
-        ByteBuffer dlb = ByteBuffer.allocateDirect(indices.length * 2);
-        dlb.order(ByteOrder.nativeOrder());
-        drawListBuffer = dlb.asShortBuffer();
-        drawListBuffer.put(indices);
-        drawListBuffer.position(0);
-    }
-
     @Override
     public void onSurfaceChanged(GL10 gl, int width, int height) {
         GLES20.glViewport(0, 0, width, height);
@@ -133,31 +139,15 @@ class GameRenderer implements Renderer {
     public void onDrawFrame(GL10 unused) {
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
 
-        mPositionLoc = GLES20.glGetAttribLocation(mProgram, "vPosition");
-        GLES20.glEnableVertexAttribArray(mPositionLoc);
-        GLES20.glVertexAttribPointer(mPositionLoc, 3, GLES20.GL_FLOAT, false, 0, vertexBuffer);
-
-        mTexCoordLoc = GLES20.glGetAttribLocation(mProgram, "a_texCoord");
-        GLES20.glEnableVertexAttribArray(mTexCoordLoc);
-        GLES20.glVertexAttribPointer(mTexCoordLoc, 2, GLES20.GL_FLOAT, false, 0, uvBuffer);
-
-        mSamplerLoc = GLES20.glGetUniformLocation(mProgram, "s_texture");
-        GLES20.glUniform1i(mSamplerLoc, 0);
-
-        GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
-        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mTexture);
-
         byte[] frame = Nesdroid.GetPixelBuffer();
         if (frame != null) {
+            GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
+            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mTexture);
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 240, 256, 0, GL_RGBA,
                          GL_UNSIGNED_BYTE, ByteBuffer.wrap(frame));
         }
 
-        GLES20.glDrawElements(GLES20.GL_TRIANGLES, indices.length,
-                              GLES20.GL_UNSIGNED_SHORT, drawListBuffer);
-
-        GLES20.glDisableVertexAttribArray(mPositionLoc);
-        GLES20.glDisableVertexAttribArray(mTexCoordLoc);
+        GLES20.glDrawElements(GLES20.GL_TRIANGLES, 6, GLES20.GL_UNSIGNED_SHORT, drawListBuffer);
 
     }
 }

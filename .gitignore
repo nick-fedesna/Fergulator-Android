@@ -5,6 +5,7 @@ out/
 build/
 
 *.so
+*.aar
 
 local.properties
 .build_log
