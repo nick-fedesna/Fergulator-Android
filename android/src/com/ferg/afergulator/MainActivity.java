@@ -1,12 +1,15 @@
 package com.ferg.afergulator;
 
+import android.app.PendingIntent;
 import android.content.*;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.PowerManager;
-import android.support.v7.app.ActionBar;
-import android.support.v7.app.AppCompatActivity;
+import android.support.v4.view.MenuItemCompat;
+import android.support.v7.app.*;
+import android.support.v7.media.MediaRouteSelector;
+import android.support.v7.media.MediaRouter;
 import android.view.*;
 import android.widget.*;
 
@@ -16,12 +19,75 @@ import java.util.Set;
 import butterknife.*;
 import com.ferg.afergulator.widget.ButtonNES;
 import com.ferg.afergulator.widget.ButtonNES.Key;
+import com.google.android.gms.cast.*;
+import com.google.android.gms.common.api.Status;
 import go.nesdroid.Nesdroid;
 import timber.log.Timber;
 
 public class MainActivity extends AppCompatActivity implements ActionBar.OnNavigationListener {
 
-    private static final int FILE_SELECT_CODE = 0xc001;
+    private static final int FILE_SELECT_CODE      = 0xc001;
+    private static final String REMOTE_DISPLAY_APP_ID = "27FA9440";
+
+    @InjectView(R.id.gameView) GameView mGameView;
+
+    protected PowerManager.WakeLock mWakeLock;
+
+    private SharedPreferences  mRecentPrefs;
+    private MediaRouter        mMediaRouter;
+    private RomAdapter         mRomAdapter;
+    private MediaRouteSelector mMediaRouteSelector;
+
+    private CastDevice mSelectedDevice;
+
+    private MediaRouter.Callback mMediaRouterCallback = new MediaRouter.Callback() {
+
+        @Override
+        public void onRouteSelected(MediaRouter router, MediaRouter.RouteInfo info) {
+            mSelectedDevice = CastDevice.getFromBundle(info.getExtras());
+            String routeId = info.getId();
+
+            Timber.d("Route ID: %s", routeId);
+            Intent intent = new Intent(MainActivity.this, MainActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            PendingIntent notificationPendingIntent = PendingIntent.getActivity(
+                    MainActivity.this, 0, intent, 0);
+
+            CastRemoteDisplayLocalService.NotificationSettings settings =
+                    new CastRemoteDisplayLocalService.NotificationSettings.Builder()
+                            .setNotificationPendingIntent(notificationPendingIntent).build();
+
+            CastRemoteDisplayLocalService.startService(
+                    getApplicationContext(),
+                    PresentationService.class, REMOTE_DISPLAY_APP_ID,
+                    mSelectedDevice, settings,
+                    new CastRemoteDisplayLocalService.Callbacks() {
+                        @Override
+                        public void onServiceCreated(CastRemoteDisplayLocalService castRemoteDisplayLocalService) {
+
+                        }
+
+                        @Override
+                        public void onRemoteDisplaySessionStarted(
+                                CastRemoteDisplayLocalService service) {
+                            // initialize sender UI
+                        }
+
+                        @Override
+                        public void onRemoteDisplaySessionError(
+                                Status errorReason){
+//                            initError();
+                        }
+                    });
+        }
+
+        @Override
+        public void onRouteUnselected(MediaRouter router, MediaRouter.RouteInfo info) {
+//            teardown();
+            mSelectedDevice = null;
+            CastRemoteDisplayLocalService.stopService();
+        }
+    };
 
     static {
         Timber.uprootAll();
@@ -29,13 +95,6 @@ public class MainActivity extends AppCompatActivity implements ActionBar.OnNavig
             Timber.plant(new Timber.DebugTree());
         }
     }
-
-    @InjectView(R.id.gameView) GameView mGameView;
-
-    private RomAdapter        romAdapter;
-    private SharedPreferences mRecentPrefs;
-
-    protected PowerManager.WakeLock mWakeLock;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -57,11 +116,28 @@ public class MainActivity extends AppCompatActivity implements ActionBar.OnNavig
         mWakeLock = pm.newWakeLock(PowerManager.SCREEN_BRIGHT_WAKE_LOCK, "Fergulator");
         mWakeLock.acquire();
 
+        mMediaRouter = MediaRouter.getInstance(getApplicationContext());
+        mMediaRouteSelector = new MediaRouteSelector.Builder()
+                .addControlCategory(CastMediaControlIntent.categoryForCast("27FA9440"))
+//                .addControlCategory(CastMediaControlIntent.categoryForCast(BuildConfig.APPLICATION_ID))
+                .build();
+
     }
 
     public void setSpinnerAdapter() {
-        romAdapter = new RomAdapter();
-        getSupportActionBar().setListNavigationCallbacks(romAdapter, this);
+        mRomAdapter = new RomAdapter();
+        getSupportActionBar().setListNavigationCallbacks(mRomAdapter, this);
+    }
+
+    @Override protected void onStart() {
+        super.onStart();
+        mMediaRouter.addCallback(mMediaRouteSelector, mMediaRouterCallback,
+                                 MediaRouter.CALLBACK_FLAG_REQUEST_DISCOVERY);
+    }
+
+    @Override protected void onStop() {
+        super.onStop();
+        mMediaRouter.removeCallback(mMediaRouterCallback);
     }
 
     @Override
@@ -80,8 +156,14 @@ public class MainActivity extends AppCompatActivity implements ActionBar.OnNavig
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        // TODO: Leave this out until save states work
-        // getMenuInflater().inflate(R.menu.main_nes, menu);
+        super.onCreateOptionsMenu(menu);
+        getMenuInflater().inflate(R.menu.cast_menu, menu);
+
+        MenuItem mediaRouteMenuItem = menu.findItem(R.id.media_route_menu_item);
+        MediaRouteActionProvider mediaRouteActionProvider =
+                (MediaRouteActionProvider) MenuItemCompat.getActionProvider(mediaRouteMenuItem);
+        mediaRouteActionProvider.setRouteSelector(mMediaRouteSelector);
+
         return true;
     }
 
@@ -112,17 +194,17 @@ public class MainActivity extends AppCompatActivity implements ActionBar.OnNavig
 
         return false;
     }
-     
-     @Override
-     public boolean onKeyUp(int keyCode, KeyEvent event) {
-         Key nesKey = ButtonNES.keyFromKeyCode(keyCode);
-         if (nesKey != null) {
-             Engine.buttonUp(nesKey);
-             return true;
-         }
 
-         return false;
-     }
+    @Override
+    public boolean onKeyUp(int keyCode, KeyEvent event) {
+        Key nesKey = ButtonNES.keyFromKeyCode(keyCode);
+        if (nesKey != null) {
+            Engine.buttonUp(nesKey);
+            return true;
+        }
+
+        return false;
+    }
 
     @OnClick(R.id.frameLayout)
     public void toggleActionBar() {
@@ -187,7 +269,7 @@ public class MainActivity extends AppCompatActivity implements ActionBar.OnNavig
 
         Nesdroid.PauseEmulator();
 
-        String rom = romAdapter.getItem(itemPosition);
+        String rom = mRomAdapter.getItem(itemPosition);
         String romUriString = mRecentPrefs.getString(rom, null);
         if (romUriString != null) {
             loadRom(Uri.parse(romUriString));
@@ -214,7 +296,7 @@ public class MainActivity extends AppCompatActivity implements ActionBar.OnNavig
             Toast.makeText(this, "Invalid NES rom!", Toast.LENGTH_SHORT).show();
             Timber.w(e, "Invalid NES rom!");
             mRecentPrefs.edit().remove(name).apply();
-            romAdapter.remove(name);
+            mRomAdapter.remove(name);
             getSupportActionBar().setSelectedNavigationItem(0);
         } finally {
             closeSilently(is);
@@ -233,8 +315,8 @@ public class MainActivity extends AppCompatActivity implements ActionBar.OnNavig
 
                 mRecentPrefs.edit().putString(name, uri.toString()).apply();
 
-                romAdapter.remove(name);
-                romAdapter.insert(name, 2);
+                mRomAdapter.remove(name);
+                mRomAdapter.insert(name, 2);
                 getSupportActionBar().setSelectedNavigationItem(2);
             }
         }
