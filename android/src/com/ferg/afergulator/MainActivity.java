@@ -26,75 +26,52 @@ import timber.log.Timber;
 
 public class MainActivity extends AppCompatActivity implements ActionBar.OnNavigationListener {
 
-    private static final int FILE_SELECT_CODE      = 0xc001;
+    private static final int    FILE_SELECT_CODE      = 0xc001;
     private static final String REMOTE_DISPLAY_APP_ID = "27FA9440";
 
     @InjectView(R.id.gameView) GameView mGameView;
 
     protected PowerManager.WakeLock mWakeLock;
 
-    private SharedPreferences  mRecentPrefs;
+    private SharedPreferences mRecentPrefs;
+    private RomAdapter        mRomAdapter;
+
     private MediaRouter        mMediaRouter;
-    private RomAdapter         mRomAdapter;
     private MediaRouteSelector mMediaRouteSelector;
-
-    private CastDevice mSelectedDevice;
-
+    private CastDevice         mSelectedDevice;
     private MediaRouter.Callback mMediaRouterCallback = new MediaRouter.Callback() {
-
-        @Override
         public void onRouteSelected(MediaRouter router, MediaRouter.RouteInfo info) {
             mSelectedDevice = CastDevice.getFromBundle(info.getExtras());
             String routeId = info.getId();
-
             Timber.d("Route ID: %s", routeId);
+
             Intent intent = new Intent(MainActivity.this, MainActivity.class);
             intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-            PendingIntent notificationPendingIntent = PendingIntent.getActivity(
-                    MainActivity.this, 0, intent, 0);
+            PendingIntent notificationPendingIntent = PendingIntent.getActivity(MainActivity.this, 0, intent, 0);
 
             CastRemoteDisplayLocalService.NotificationSettings settings =
                     new CastRemoteDisplayLocalService.NotificationSettings.Builder()
-                            .setNotificationPendingIntent(notificationPendingIntent).build();
+                            .setNotificationPendingIntent(notificationPendingIntent)
+                            .build();
 
-            CastRemoteDisplayLocalService.startService(
-                    getApplicationContext(),
-                    PresentationService.class, REMOTE_DISPLAY_APP_ID,
-                    mSelectedDevice, settings,
-                    new CastRemoteDisplayLocalService.Callbacks() {
-                        @Override
-                        public void onServiceCreated(CastRemoteDisplayLocalService castRemoteDisplayLocalService) {
+            // we don't need any interaction w/ the service or presentation
+            CastRemoteDisplayLocalService.Callbacks callbacks = new CastRemoteDisplayLocalService.Callbacks() {
+                public void onServiceCreated(CastRemoteDisplayLocalService service) {}
 
-                        }
+                public void onRemoteDisplaySessionStarted(CastRemoteDisplayLocalService service) {}
 
-                        @Override
-                        public void onRemoteDisplaySessionStarted(
-                                CastRemoteDisplayLocalService service) {
-                            // initialize sender UI
-                        }
+                public void onRemoteDisplaySessionError(Status status) {}
+            };
 
-                        @Override
-                        public void onRemoteDisplaySessionError(
-                                Status errorReason){
-//                            initError();
-                        }
-                    });
+            CastRemoteDisplayLocalService.startService(getApplicationContext(), PresentationService.class,
+                                                       REMOTE_DISPLAY_APP_ID, mSelectedDevice, settings, callbacks);
         }
 
-        @Override
         public void onRouteUnselected(MediaRouter router, MediaRouter.RouteInfo info) {
-//            teardown();
-            mSelectedDevice = null;
             CastRemoteDisplayLocalService.stopService();
+            mSelectedDevice = null;
         }
     };
-
-    static {
-        Timber.uprootAll();
-        if (BuildConfig.DEBUG) {
-            Timber.plant(new Timber.DebugTree());
-        }
-    }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -118,8 +95,7 @@ public class MainActivity extends AppCompatActivity implements ActionBar.OnNavig
 
         mMediaRouter = MediaRouter.getInstance(getApplicationContext());
         mMediaRouteSelector = new MediaRouteSelector.Builder()
-                .addControlCategory(CastMediaControlIntent.categoryForCast("27FA9440"))
-//                .addControlCategory(CastMediaControlIntent.categoryForCast(BuildConfig.APPLICATION_ID))
+                .addControlCategory(CastMediaControlIntent.categoryForCast(REMOTE_DISPLAY_APP_ID))
                 .build();
 
     }
