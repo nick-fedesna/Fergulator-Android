@@ -5,14 +5,12 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.opengl.*;
 import android.opengl.GLSurfaceView.Renderer;
-import android.os.Looper;
 
 import java.nio.*;
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
 import go.nesdroid.Nesdroid;
-import timber.log.Timber;
 
 import static android.opengl.GLES20.*;
 
@@ -49,6 +47,13 @@ class GameRenderer implements Renderer {
         mContext = c;
     }
 
+    public static int loadShader(int type, String shaderCode) {
+        int shader = glCreateShader(type);
+        glShaderSource(shader, shaderCode);
+        glCompileShader(shader);
+        return shader;
+    }
+
     @Override
     public void onSurfaceCreated(GL10 gl, EGLConfig config) {
         setupSquare();
@@ -56,8 +61,8 @@ class GameRenderer implements Renderer {
 
         GLES20.glClearColor(0.0f, 0.0f, 0.0f, 1);
 
-        int vertexShader = GameView.loadShader(GLES20.GL_VERTEX_SHADER, pixelShader);
-        int fragmentShader = GameView.loadShader(GLES20.GL_FRAGMENT_SHADER, this.fragmentShader);
+        int vertexShader = loadShader(GLES20.GL_VERTEX_SHADER, pixelShader);
+        int fragmentShader = loadShader(GLES20.GL_FRAGMENT_SHADER, this.fragmentShader);
 
         int program = GLES20.glCreateProgram();
         GLES20.glAttachShader(program, vertexShader);

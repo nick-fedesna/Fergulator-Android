@@ -1,9 +1,9 @@
 package com.ferg.afergulator;
 
-import android.app.Activity;
 import android.content.Context;
 import android.os.Bundle;
 import android.os.PowerManager;
+import android.support.v7.app.AppCompatActivity;
 import android.view.KeyEvent;
 
 import java.io.IOException;
@@ -14,7 +14,7 @@ import com.ferg.afergulator.widget.ButtonNES.Key;
 import go.nesdroid.Nesdroid;
 import timber.log.Timber;
 
-public class GameActivity extends Activity {
+public class GameActivity extends AppCompatActivity {
 
     private static final String TAG = GameActivity.class.getSimpleName();
 

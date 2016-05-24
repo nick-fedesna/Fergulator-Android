@@ -1,12 +1,12 @@
 package com.ferg.afergulator;
 
-import android.app.ActionBar;
-import android.app.Activity;
 import android.content.*;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.PowerManager;
+import android.support.v7.app.ActionBar;
+import android.support.v7.app.AppCompatActivity;
 import android.view.*;
 import android.widget.*;
 
@@ -19,7 +19,7 @@ import com.ferg.afergulator.widget.ButtonNES.Key;
 import go.nesdroid.Nesdroid;
 import timber.log.Timber;
 
-public class MainActivity extends Activity implements ActionBar.OnNavigationListener {
+public class MainActivity extends AppCompatActivity implements ActionBar.OnNavigationListener {
 
     private static final int FILE_SELECT_CODE = 0xc001;
 
@@ -48,8 +48,8 @@ public class MainActivity extends Activity implements ActionBar.OnNavigationList
 
         mRecentPrefs = getSharedPreferences("recent", MODE_PRIVATE);
 
-        getActionBar().setNavigationMode(ActionBar.NAVIGATION_MODE_LIST);
-        getActionBar().setDisplayShowTitleEnabled(false);
+        getSupportActionBar().setNavigationMode(ActionBar.NAVIGATION_MODE_LIST);
+        getSupportActionBar().setDisplayShowTitleEnabled(false);
         setSpinnerAdapter();
 
         final PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
@@ -61,7 +61,7 @@ public class MainActivity extends Activity implements ActionBar.OnNavigationList
 
     public void setSpinnerAdapter() {
         romAdapter = new RomAdapter();
-        getActionBar().setListNavigationCallbacks(romAdapter, this);
+        getSupportActionBar().setListNavigationCallbacks(romAdapter, this);
     }
 
     @Override
@@ -126,12 +126,12 @@ public class MainActivity extends Activity implements ActionBar.OnNavigationList
 
     @OnClick(R.id.frameLayout)
     public void toggleActionBar() {
-        if (getActionBar().isShowing()) {
-            getActionBar().hide();
+        if (getSupportActionBar().isShowing()) {
+            getSupportActionBar().hide();
             mGameView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LOW_PROFILE);
         } else {
             mGameView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_VISIBLE);
-            getActionBar().show();
+            getSupportActionBar().show();
         }
     }
 
@@ -159,7 +159,7 @@ public class MainActivity extends Activity implements ActionBar.OnNavigationList
         public View getDropDownView(int position, View convertView, ViewGroup parent) {
             TextView v = (TextView) super.getDropDownView(position, convertView, parent);
 
-            int i = getActionBar().getSelectedNavigationIndex();
+            int i = getSupportActionBar().getSelectedNavigationIndex();
             v.setTextColor(position == i ? Color.WHITE : mHighlightColor);
 
             return v;
@@ -181,7 +181,7 @@ public class MainActivity extends Activity implements ActionBar.OnNavigationList
                 Toast.makeText(this, "No file browser. =(", Toast.LENGTH_SHORT).show();
             }
 
-            getActionBar().setSelectedNavigationItem(0);
+            getSupportActionBar().setSelectedNavigationItem(0);
             return true;
         }
 
@@ -215,7 +215,7 @@ public class MainActivity extends Activity implements ActionBar.OnNavigationList
             Timber.w(e, "Invalid NES rom!");
             mRecentPrefs.edit().remove(name).apply();
             romAdapter.remove(name);
-            getActionBar().setSelectedNavigationItem(0);
+            getSupportActionBar().setSelectedNavigationItem(0);
         } finally {
             closeSilently(is);
         }
@@ -235,7 +235,7 @@ public class MainActivity extends Activity implements ActionBar.OnNavigationList
 
                 romAdapter.remove(name);
                 romAdapter.insert(name, 2);
-                getActionBar().setSelectedNavigationItem(2);
+                getSupportActionBar().setSelectedNavigationItem(2);
             }
         }
     }

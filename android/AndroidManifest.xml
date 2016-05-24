@@ -16,7 +16,7 @@
 
         <activity android:name=".MainActivity"
                   android:clearTaskOnLaunch="true"
-				  android:theme="@android:style/Theme.Holo.Light.DarkActionBar"
+				  android:theme="@style/Theme.AppTheme"
                   android:screenOrientation="sensorLandscape"
                   android:configChanges="orientation"
                   android:icon="@drawable/ic_launcher"
@@ -27,6 +27,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 		</activity>
+
         <activity android:name="com.ferg.afergulator.GameActivity"
                   android:screenOrientation="sensorLandscape"
                   android:configChanges="orientation"
