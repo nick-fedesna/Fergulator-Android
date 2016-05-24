@@ -109,8 +109,8 @@ class GameRenderer implements Renderer {
     private void setupTexture() {
         float[] uvs = new float[]{
                 0.0f, 0.0f,
-                0.0f, 1.0f,
-                1.0f, 1.0f,
+                0.0f, 0.875f,
+                1.0f, 0.875f,
                 1.0f, 0.0f
         };
 
